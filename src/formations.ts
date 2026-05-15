@@ -19,14 +19,15 @@ function buildSlots(lines: number[]): FormationSlot[] {
     const role: Position =
       lineIdx === 0 ? 'DEF' : lineIdx === numLines - 1 ? 'FWD' : 'MID'
 
-    // x от 12 до 88
+    // x от 12 до 88 — полный диапазон, но шаг между игроками не больше MAX_SPACING,
+    // чтобы пары и тройки сжимались к центру, а не выглядели как фланговые
     const xMin = 12
     const xMax = 88
+    const MAX_SPACING = 26
+    const span = Math.min(xMax - xMin, MAX_SPACING * (count - 1))
+    const left = 50 - span / 2
     for (let i = 0; i < count; i++) {
-      const x =
-        count === 1
-          ? 50
-          : xMin + ((xMax - xMin) * i) / (count - 1)
+      const x = count === 1 ? 50 : left + (span * i) / (count - 1)
       slots.push({ id: `${role}-${lineIdx}-${i}`, role, x, y })
     }
   })
