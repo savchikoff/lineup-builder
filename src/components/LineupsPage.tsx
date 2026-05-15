@@ -31,6 +31,7 @@ export function LineupsPage({ lineups, onChange }: Props) {
       formationId: formation.id,
       assignments,
       bench: [],
+      substitutions: {},
     }
     onChange([...lineups, lineup])
     setName('')

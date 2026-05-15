@@ -37,4 +37,6 @@ export interface Lineup {
   assignments: Record<string, string | null>
   // playerIds на скамейке
   bench: string[]
+  // slotId -> playerId | null — кто выйдет на замену вместо игрока на этой позиции
+  substitutions?: Record<string, string | null>
 }
