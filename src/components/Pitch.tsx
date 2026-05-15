@@ -19,6 +19,7 @@ export function Pitch({ formation, assignments, playersById }: Props) {
       {formation.slots.map((slot) => {
         const playerId = assignments[slot.id]
         const player = playerId ? playersById[playerId] : null
+        const last = player ? surname(player.name) : ''
         return (
           <div
             key={slot.id}
@@ -30,11 +31,9 @@ export function Pitch({ formation, assignments, playersById }: Props) {
             title={`${slot.role}${player ? ' — ' + player.name : ''}`}
           >
             <div className={`slot-dot pos-${slot.role}`}>
-              {player ? initials(player.name) : slot.role}
+              {player ? last.slice(0, 2).toUpperCase() : slot.role}
             </div>
-            <div className="slot-name">
-              {player ? player.name : `(${slot.role})`}
-            </div>
+            <div className="slot-name">{player ? last : `(${slot.role})`}</div>
           </div>
         )
       })}
@@ -42,9 +41,13 @@ export function Pitch({ formation, assignments, playersById }: Props) {
   )
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[1][0]).toUpperCase()
+function surname(name: string): string {
+  const tokens = name.trim().split(/\s+/).filter(Boolean)
+  if (tokens.length === 0) return ''
+  // выбираем последний токен, который не похож на инициал
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const stripped = tokens[i].replace(/\.$/, '')
+    if (stripped.length >= 2) return stripped
+  }
+  return tokens[0]
 }
