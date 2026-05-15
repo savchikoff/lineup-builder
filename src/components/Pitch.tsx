@@ -41,12 +41,12 @@ export function Pitch({ formation, assignments, playersById }: Props) {
   )
 }
 
+// Игроки сохраняются в формате «Фамилия Имя» — берём первый токен длиннее 1 символа.
 function surname(name: string): string {
   const tokens = name.trim().split(/\s+/).filter(Boolean)
   if (tokens.length === 0) return ''
-  // выбираем последний токен, который не похож на инициал
-  for (let i = tokens.length - 1; i >= 0; i--) {
-    const stripped = tokens[i].replace(/\.$/, '')
+  for (const t of tokens) {
+    const stripped = t.replace(/\.$/, '')
     if (stripped.length >= 2) return stripped
   }
   return tokens[0]
