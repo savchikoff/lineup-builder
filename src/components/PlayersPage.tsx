@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { POSITIONS, POSITION_LABEL } from '../types'
 import type { Player, Position } from '../types'
 import { uid } from '../storage'
+import { useAdmin } from '../AdminContext'
 
 interface Props {
   players: Player[]
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function PlayersPage({ players, onChange }: Props) {
+  const { isAdmin } = useAdmin()
   const [name, setName] = useState('')
   const [position, setPosition] = useState<Position>('MID')
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -56,34 +58,40 @@ export function PlayersPage({ players, onChange }: Props) {
     <div className="page">
       <h2>Игроки</h2>
 
-      <form className="row" onSubmit={handleAdd}>
-        <input
-          className="grow"
-          placeholder="ФИО"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <select
-          value={position}
-          onChange={(e) => setPosition(e.target.value as Position)}
-        >
-          {POSITIONS.map((p) => (
-            <option key={p} value={p}>
-              {POSITION_LABEL[p]}
-            </option>
-          ))}
-        </select>
-        <button type="submit">Добавить</button>
-      </form>
+      {isAdmin && (
+        <form className="row" onSubmit={handleAdd}>
+          <input
+            className="grow"
+            placeholder="ФИО"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <select
+            value={position}
+            onChange={(e) => setPosition(e.target.value as Position)}
+          >
+            {POSITIONS.map((p) => (
+              <option key={p} value={p}>
+                {POSITION_LABEL[p]}
+              </option>
+            ))}
+          </select>
+          <button type="submit">Добавить</button>
+        </form>
+      )}
 
       {sorted.length === 0 ? (
-        <p className="muted">Список пуст. Добавьте первого игрока.</p>
+        <p className="muted">
+          {isAdmin
+            ? 'Список пуст. Добавьте первого игрока.'
+            : 'Список пуст.'}
+        </p>
       ) : (
         <ul className="list">
           {sorted.map((p) => (
             <li key={p.id} className="list-item">
-              {editingId === p.id ? (
-                <div className="row grow">
+              {isAdmin && editingId === p.id ? (
+                <div className="row grow" style={{ marginBottom: 0 }}>
                   <input
                     className="grow"
                     value={editName}
@@ -108,13 +116,17 @@ export function PlayersPage({ players, onChange }: Props) {
                     {p.position}
                   </span>
                   <span className="grow">{p.name}</span>
-                  <button onClick={() => startEdit(p)}>Изменить</button>
-                  <button
-                    className="danger"
-                    onClick={() => handleDelete(p.id)}
-                  >
-                    Удалить
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button onClick={() => startEdit(p)}>Изменить</button>
+                      <button
+                        className="danger"
+                        onClick={() => handleDelete(p.id)}
+                      >
+                        Удалить
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </li>

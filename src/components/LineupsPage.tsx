@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Lineup } from '../types'
 import { getFormation, getFormationsForSize, SQUAD_SIZES } from '../formations'
 import { uid } from '../storage'
+import { useAdmin } from '../AdminContext'
 
 interface Props {
   lineups: Lineup[]
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function LineupsPage({ lineups, onChange, onOpen }: Props) {
+  const { isAdmin } = useAdmin()
   const [name, setName] = useState('')
   const [size, setSize] = useState<number>(11)
 
@@ -43,28 +45,32 @@ export function LineupsPage({ lineups, onChange, onOpen }: Props) {
     <div className="page">
       <h2>Составы</h2>
 
-      <form className="row" onSubmit={handleCreate}>
-        <input
-          className="grow"
-          placeholder="Название состава (например: «Матч с Динамо»)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <select
-          value={size}
-          onChange={(e) => setSize(Number(e.target.value))}
-        >
-          {SQUAD_SIZES.map((s) => (
-            <option key={s} value={s}>
-              {s} игроков
-            </option>
-          ))}
-        </select>
-        <button type="submit">Создать</button>
-      </form>
+      {isAdmin && (
+        <form className="row" onSubmit={handleCreate}>
+          <input
+            className="grow"
+            placeholder="Название состава (например: «Матч с Динамо»)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <select
+            value={size}
+            onChange={(e) => setSize(Number(e.target.value))}
+          >
+            {SQUAD_SIZES.map((s) => (
+              <option key={s} value={s}>
+                {s} игроков
+              </option>
+            ))}
+          </select>
+          <button type="submit">Создать</button>
+        </form>
+      )}
 
       {lineups.length === 0 ? (
-        <p className="muted">Составов пока нет. Создайте первый.</p>
+        <p className="muted">
+          {isAdmin ? 'Составов пока нет. Создайте первый.' : 'Составов пока нет.'}
+        </p>
       ) : (
         <ul className="list">
           {lineups.map((l) => {
@@ -82,9 +88,11 @@ export function LineupsPage({ lineups, onChange, onOpen }: Props) {
                   </span>
                 </span>
                 <button onClick={() => onOpen(l.id)}>Открыть</button>
-                <button className="danger" onClick={() => handleDelete(l.id)}>
-                  Удалить
-                </button>
+                {isAdmin && (
+                  <button className="danger" onClick={() => handleDelete(l.id)}>
+                    Удалить
+                  </button>
+                )}
               </li>
             )
           })}

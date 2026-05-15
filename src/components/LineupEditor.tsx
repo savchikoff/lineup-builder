@@ -7,6 +7,7 @@ import {
   SQUAD_SIZES,
 } from '../formations'
 import { Pitch } from './Pitch'
+import { useAdmin } from '../AdminContext'
 
 interface Props {
   lineup: Lineup
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
+  const { isAdmin } = useAdmin()
   const formation = getFormation(lineup.formationId)
   const playersById = useMemo(
     () => Object.fromEntries(players.map((p) => [p.id, p])),
@@ -51,7 +53,6 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
   const assignToSlot = (slotId: string, playerId: string | null) => {
     const newAssignments = { ...lineup.assignments }
 
-    // если этого игрока уже куда-то поставили — убрать оттуда
     if (playerId) {
       for (const sid of Object.keys(newAssignments)) {
         if (newAssignments[sid] === playerId) newAssignments[sid] = null
@@ -59,7 +60,6 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
     }
     newAssignments[slotId] = playerId
 
-    // и убрать со скамейки
     const newBench = playerId
       ? lineup.bench.filter((id) => id !== playerId)
       : lineup.bench
@@ -69,7 +69,6 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
 
   const addToBench = (playerId: string) => {
     if (!playerId || benchIds.has(playerId)) return
-    // если был на поле — снять
     const newAssignments = { ...lineup.assignments }
     for (const sid of Object.keys(newAssignments)) {
       if (newAssignments[sid] === playerId) newAssignments[sid] = null
@@ -110,6 +109,7 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
           className="grow"
           value={lineup.name}
           onChange={(e) => renameLineup(e.target.value)}
+          readOnly={!isAdmin}
         />
       </div>
 
@@ -119,6 +119,7 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
           <select
             value={formation.size}
             onChange={(e) => changeSize(Number(e.target.value))}
+            disabled={!isAdmin}
           >
             {SQUAD_SIZES.map((s) => (
               <option key={s} value={s}>
@@ -132,6 +133,7 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
           <select
             value={formation.id}
             onChange={(e) => changeFormation(e.target.value)}
+            disabled={!isAdmin}
           >
             {formationsForSize.map((f) => (
               <option key={f.id} value={f.id}>
@@ -155,62 +157,78 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
           <section>
             <h3>На поле</h3>
             <ul className="slot-list">
-              {formation.slots.map((slot) => (
-                <li key={slot.id} className="slot-row">
-                  <span className={`pos-badge pos-${slot.role}`}>
-                    {slot.role}
-                  </span>
-                  <select
-                    className="grow"
-                    value={lineup.assignments[slot.id] ?? ''}
-                    onChange={(e) =>
-                      assignToSlot(slot.id, e.target.value || null)
-                    }
-                  >
-                    <option value="">— пусто —</option>
-                    {players.map((p) => {
-                      const usedHere = lineup.assignments[slot.id] === p.id
-                      const usedElsewhere =
-                        !usedHere &&
-                        (onFieldIds.has(p.id) || benchIds.has(p.id))
-                      const suffix = usedElsewhere
-                        ? benchIds.has(p.id)
-                          ? ' · скамья'
-                          : ' · на поле'
-                        : ''
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.position}){suffix}
-                        </option>
-                      )
-                    })}
-                  </select>
-                </li>
-              ))}
+              {formation.slots.map((slot) => {
+                const assignedId = lineup.assignments[slot.id]
+                const assigned = assignedId ? playersById[assignedId] : null
+                return (
+                  <li key={slot.id} className="slot-row">
+                    <span className={`pos-badge pos-${slot.role}`}>
+                      {slot.role}
+                    </span>
+                    {isAdmin ? (
+                      <select
+                        className="grow"
+                        value={assignedId ?? ''}
+                        onChange={(e) =>
+                          assignToSlot(slot.id, e.target.value || null)
+                        }
+                      >
+                        <option value="">— пусто —</option>
+                        {players.map((p) => {
+                          const usedHere = assignedId === p.id
+                          const usedElsewhere =
+                            !usedHere &&
+                            (onFieldIds.has(p.id) || benchIds.has(p.id))
+                          const suffix = usedElsewhere
+                            ? benchIds.has(p.id)
+                              ? ' · скамья'
+                              : ' · на поле'
+                            : ''
+                          return (
+                            <option key={p.id} value={p.id}>
+                              {p.name} ({p.position}){suffix}
+                            </option>
+                          )
+                        })}
+                      </select>
+                    ) : (
+                      <span className="grow">
+                        {assigned ? (
+                          `${assigned.name} (${assigned.position})`
+                        ) : (
+                          <span className="muted">— пусто —</span>
+                        )}
+                      </span>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </section>
 
           <section>
             <h3>Скамейка ({lineup.bench.length})</h3>
-            <div className="row">
-              <select
-                className="grow"
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) {
-                    addToBench(e.target.value)
-                    e.target.value = ''
-                  }
-                }}
-              >
-                <option value="">+ добавить на скамейку…</option>
-                {availablePlayers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.position})
-                  </option>
-                ))}
-              </select>
-            </div>
+            {isAdmin && (
+              <div className="row">
+                <select
+                  className="grow"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      addToBench(e.target.value)
+                      e.target.value = ''
+                    }
+                  }}
+                >
+                  <option value="">+ добавить на скамейку…</option>
+                  {availablePlayers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.position})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {lineup.bench.length === 0 ? (
               <p className="muted">Скамейка пуста.</p>
             ) : (
@@ -223,12 +241,14 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
                         <span className="grow muted">
                           (игрок удалён из базы)
                         </span>
-                        <button
-                          className="danger"
-                          onClick={() => removeFromBench(id)}
-                        >
-                          Убрать
-                        </button>
+                        {isAdmin && (
+                          <button
+                            className="danger"
+                            onClick={() => removeFromBench(id)}
+                          >
+                            Убрать
+                          </button>
+                        )}
                       </li>
                     )
                   }
@@ -238,9 +258,11 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
                         {p.position}
                       </span>
                       <span className="grow">{p.name}</span>
-                      <button onClick={() => removeFromBench(id)}>
-                        Убрать
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => removeFromBench(id)}>
+                          Убрать
+                        </button>
+                      )}
                     </li>
                   )
                 })}
@@ -248,24 +270,26 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
             )}
           </section>
 
-          <section>
-            <h3>Свободные игроки ({availablePlayers.length})</h3>
-            {availablePlayers.length === 0 ? (
-              <p className="muted">Все игроки распределены.</p>
-            ) : (
-              <ul className="list compact">
-                {availablePlayers.map((p) => (
-                  <li key={p.id} className="list-item">
-                    <span className={`pos-badge pos-${p.position}`}>
-                      {p.position}
-                    </span>
-                    <span className="grow">{p.name}</span>
-                    <span className="muted">{POSITION_LABEL[p.position]}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {isAdmin && (
+            <section>
+              <h3>Свободные игроки ({availablePlayers.length})</h3>
+              {availablePlayers.length === 0 ? (
+                <p className="muted">Все игроки распределены.</p>
+              ) : (
+                <ul className="list compact">
+                  {availablePlayers.map((p) => (
+                    <li key={p.id} className="list-item">
+                      <span className={`pos-badge pos-${p.position}`}>
+                        {p.position}
+                      </span>
+                      <span className="grow">{p.name}</span>
+                      <span className="muted">{POSITION_LABEL[p.position]}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </div>
       </div>
     </div>

@@ -1,33 +1,38 @@
 import { useState } from 'react'
 import './App.css'
-import type { Lineup, Player } from './types'
-import { useLocalStorage } from './storage'
+import type { Lineup } from './types'
+import { useAdmin } from './AdminContext'
+import { AdminProvider } from './AdminProvider'
+import { useLineups, usePlayers } from './remote'
 import { PlayersPage } from './components/PlayersPage'
 import { LineupsPage } from './components/LineupsPage'
 import { LineupEditor } from './components/LineupEditor'
+import { AdminLogin } from './components/AdminLogin'
 
 type View =
   | { kind: 'players' }
   | { kind: 'lineups' }
   | { kind: 'editor'; lineupId: string }
 
-export default function App() {
-  const [players, setPlayers] = useLocalStorage<Player[]>(
-    'lineup-builder.players',
-    [],
-  )
-  const [lineups, setLineups] = useLocalStorage<Lineup[]>(
-    'lineup-builder.lineups',
-    [],
-  )
+function AppInner() {
+  const { isAdmin, logout } = useAdmin()
+  const players = usePlayers()
+  const lineups = useLineups()
   const [view, setView] = useState<View>({ kind: 'players' })
+  const [showLogin, setShowLogin] = useState(false)
 
   const updateLineup = (updated: Lineup) => {
-    setLineups(lineups.map((l) => (l.id === updated.id ? updated : l)))
+    lineups.setItems(
+      lineups.items.map((l) => (l.id === updated.id ? updated : l)),
+    )
   }
 
   const editingLineup =
-    view.kind === 'editor' ? lineups.find((l) => l.id === view.lineupId) : null
+    view.kind === 'editor'
+      ? lineups.items.find((l) => l.id === view.lineupId)
+      : null
+
+  const error = players.error ?? lineups.error
 
   return (
     <div className="app">
@@ -38,7 +43,7 @@ export default function App() {
             className={view.kind === 'players' ? 'active' : ''}
             onClick={() => setView({ kind: 'players' })}
           >
-            Игроки ({players.length})
+            Игроки ({players.items.length})
           </button>
           <button
             className={
@@ -46,19 +51,40 @@ export default function App() {
             }
             onClick={() => setView({ kind: 'lineups' })}
           >
-            Составы ({lineups.length})
+            Составы ({lineups.items.length})
           </button>
+          {isAdmin ? (
+            <button onClick={logout} title="Выйти из режима администратора">
+              Админ ✓
+            </button>
+          ) : (
+            <button onClick={() => setShowLogin(true)}>Войти</button>
+          )}
         </nav>
       </header>
 
+      {error && (
+        <div className="error-banner">
+          <span className="grow">{error}</span>
+          <button
+            onClick={() => {
+              players.clearError()
+              lineups.clearError()
+            }}
+          >
+            Скрыть
+          </button>
+        </div>
+      )}
+
       <main>
         {view.kind === 'players' && (
-          <PlayersPage players={players} onChange={setPlayers} />
+          <PlayersPage players={players.items} onChange={players.setItems} />
         )}
         {view.kind === 'lineups' && (
           <LineupsPage
-            lineups={lineups}
-            onChange={setLineups}
+            lineups={lineups.items}
+            onChange={lineups.setItems}
             onOpen={(id) => setView({ kind: 'editor', lineupId: id })}
           />
         )}
@@ -66,7 +92,7 @@ export default function App() {
           (editingLineup ? (
             <LineupEditor
               lineup={editingLineup}
-              players={players}
+              players={players.items}
               onChange={updateLineup}
               onBack={() => setView({ kind: 'lineups' })}
             />
@@ -79,6 +105,16 @@ export default function App() {
             </div>
           ))}
       </main>
+
+      {showLogin && <AdminLogin onClose={() => setShowLogin(false)} />}
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AdminProvider>
+      <AppInner />
+    </AdminProvider>
   )
 }
