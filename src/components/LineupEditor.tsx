@@ -32,16 +32,22 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
     }
     setTimeout(() => setShareLabel('Поделиться'), 1800)
   }
+
   const formation = getFormation(lineup.formationId)
   const playersById = useMemo(
     () => Object.fromEntries(players.map((p) => [p.id, p])),
     [players],
   )
 
+  const substitutions = lineup.substitutions ?? {}
+
   const onFieldIds = new Set(
     Object.values(lineup.assignments).filter((v): v is string => Boolean(v)),
   )
   const benchIds = new Set(lineup.bench)
+  const subbedIds = new Set(
+    Object.values(substitutions).filter((v): v is string => Boolean(v)),
+  )
 
   const renameLineup = (name: string) => {
     onChange({ ...lineup, name })
@@ -53,7 +59,12 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
     const newFormation = formations[0]
     const assignments: Record<string, string | null> = {}
     newFormation.slots.forEach((s) => (assignments[s.id] = null))
-    onChange({ ...lineup, formationId: newFormation.id, assignments })
+    onChange({
+      ...lineup,
+      formationId: newFormation.id,
+      assignments,
+      substitutions: {},
+    })
   }
 
   const changeFormation = (formationId: string) => {
@@ -61,7 +72,7 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
     if (!newFormation) return
     const assignments: Record<string, string | null> = {}
     newFormation.slots.forEach((s) => (assignments[s.id] = null))
-    onChange({ ...lineup, formationId, assignments })
+    onChange({ ...lineup, formationId, assignments, substitutions: {} })
   }
 
   const assignToSlot = (slotId: string, playerId: string | null) => {
@@ -78,7 +89,36 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
       ? lineup.bench.filter((id) => id !== playerId)
       : lineup.bench
 
-    onChange({ ...lineup, assignments: newAssignments, bench: newBench })
+    // если игрок выходит на поле — он больше не может быть запасным
+    const newSubs = { ...substitutions }
+    let subsChanged = false
+    if (playerId) {
+      for (const sid of Object.keys(newSubs)) {
+        if (newSubs[sid] === playerId) {
+          newSubs[sid] = null
+          subsChanged = true
+        }
+      }
+    }
+
+    onChange({
+      ...lineup,
+      assignments: newAssignments,
+      bench: newBench,
+      substitutions: subsChanged ? newSubs : substitutions,
+    })
+  }
+
+  const assignSubstitute = (slotId: string, subPlayerId: string | null) => {
+    const next: Record<string, string | null> = { ...substitutions }
+    if (subPlayerId) {
+      // один запасной — не более чем на одной позиции
+      for (const sid of Object.keys(next)) {
+        if (next[sid] === subPlayerId) next[sid] = null
+      }
+    }
+    next[slotId] = subPlayerId
+    onChange({ ...lineup, substitutions: next })
   }
 
   const addToBench = (playerId: string) => {
@@ -95,9 +135,19 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
   }
 
   const removeFromBench = (playerId: string) => {
+    // снимаем игрока с любых назначений на замену
+    const nextSubs = { ...substitutions }
+    let subsChanged = false
+    for (const sid of Object.keys(nextSubs)) {
+      if (nextSubs[sid] === playerId) {
+        nextSubs[sid] = null
+        subsChanged = true
+      }
+    }
     onChange({
       ...lineup,
       bench: lineup.bench.filter((id) => id !== playerId),
+      substitutions: subsChanged ? nextSubs : substitutions,
     })
   }
 
@@ -177,45 +227,84 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
               {formation.slots.map((slot) => {
                 const assignedId = lineup.assignments[slot.id]
                 const assigned = assignedId ? playersById[assignedId] : null
+                const subId = substitutions[slot.id] ?? null
+                const sub = subId ? playersById[subId] : null
+                const showSubRow = isAdmin || sub != null
                 return (
-                  <li key={slot.id} className="slot-row">
-                    <span className={`pos-badge pos-${slot.role}`}>
-                      {slot.role}
-                    </span>
-                    {isAdmin ? (
-                      <select
-                        className="grow"
-                        value={assignedId ?? ''}
-                        onChange={(e) =>
-                          assignToSlot(slot.id, e.target.value || null)
-                        }
-                      >
-                        <option value="">— пусто —</option>
-                        {players.map((p) => {
-                          const usedHere = assignedId === p.id
-                          const usedElsewhere =
-                            !usedHere &&
-                            (onFieldIds.has(p.id) || benchIds.has(p.id))
-                          const suffix = usedElsewhere
-                            ? benchIds.has(p.id)
-                              ? ' · скамья'
-                              : ' · на поле'
-                            : ''
-                          return (
-                            <option key={p.id} value={p.id}>
-                              {p.name} ({p.position}){suffix}
-                            </option>
-                          )
-                        })}
-                      </select>
-                    ) : (
-                      <span className="grow">
-                        {assigned ? (
-                          `${assigned.name} (${assigned.position})`
-                        ) : (
-                          <span className="muted">— пусто —</span>
-                        )}
+                  <li key={slot.id} className="slot-row-group">
+                    <div className="slot-row">
+                      <span className={`pos-badge pos-${slot.role}`}>
+                        {slot.role}
                       </span>
+                      {isAdmin ? (
+                        <select
+                          className="grow"
+                          value={assignedId ?? ''}
+                          onChange={(e) =>
+                            assignToSlot(slot.id, e.target.value || null)
+                          }
+                        >
+                          <option value="">— пусто —</option>
+                          {players.map((p) => {
+                            const usedHere = assignedId === p.id
+                            const usedElsewhere =
+                              !usedHere &&
+                              (onFieldIds.has(p.id) || benchIds.has(p.id))
+                            const suffix = usedElsewhere
+                              ? benchIds.has(p.id)
+                                ? ' · скамья'
+                                : ' · на поле'
+                              : ''
+                            return (
+                              <option key={p.id} value={p.id}>
+                                {p.name} ({p.position}){suffix}
+                              </option>
+                            )
+                          })}
+                        </select>
+                      ) : (
+                        <span className="grow">
+                          {assigned ? (
+                            `${assigned.name} (${assigned.position})`
+                          ) : (
+                            <span className="muted">— пусто —</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    {showSubRow && (
+                      <div className="slot-sub-row">
+                        <span className="sub-prefix">↳ замена</span>
+                        {isAdmin ? (
+                          <select
+                            className="grow"
+                            value={subId ?? ''}
+                            onChange={(e) =>
+                              assignSubstitute(slot.id, e.target.value || null)
+                            }
+                          >
+                            <option value="">— не назначена —</option>
+                            {lineup.bench.map((bid) => {
+                              const bp = playersById[bid]
+                              if (!bp) return null
+                              const here = subId === bid
+                              const elsewhere = !here && subbedIds.has(bid)
+                              return (
+                                <option key={bid} value={bid}>
+                                  {bp.name} ({bp.position})
+                                  {elsewhere ? ' · занят' : ''}
+                                </option>
+                              )
+                            })}
+                          </select>
+                        ) : sub ? (
+                          <span className="grow">
+                            {sub.name} ({sub.position})
+                          </span>
+                        ) : (
+                          <span className="muted">— не назначена —</span>
+                        )}
+                      </div>
                     )}
                   </li>
                 )
@@ -275,6 +364,11 @@ export function LineupEditor({ lineup, players, onChange }: Props) {
                         {p.position}
                       </span>
                       <span className="grow">{p.name}</span>
+                      {subbedIds.has(id) && (
+                        <span className="muted" title="Назначен на замену">
+                          ⇄ замена
+                        </span>
+                      )}
                       {isAdmin && (
                         <button onClick={() => removeFromBench(id)}>
                           Убрать

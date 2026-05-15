@@ -428,6 +428,41 @@ button.danger:hover {
   gap: 0.6rem;
 }
 
+.slot-row-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.slot-row-group:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.slot-sub-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.slot-sub-row select {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.sub-prefix {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  min-width: 76px;
+}
+
 .pitch {
   position: relative;
   width: 100%;
