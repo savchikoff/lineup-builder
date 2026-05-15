@@ -107,7 +107,9 @@ export function PlayersPage({ players, onChange }: Props) {
                       </option>
                     ))}
                   </select>
-                  <button onClick={saveEdit}>Сохранить</button>
+                  <button className="primary" onClick={saveEdit}>
+                    Сохранить
+                  </button>
                   <button onClick={() => setEditingId(null)}>Отмена</button>
                 </div>
               ) : (

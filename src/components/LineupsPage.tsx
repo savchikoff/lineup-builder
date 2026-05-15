@@ -87,7 +87,9 @@ export function LineupsPage({ lineups, onChange, onOpen }: Props) {
                     {filled}/{total} на поле · {l.bench.length} в запасе
                   </span>
                 </span>
-                <button onClick={() => onOpen(l.id)}>Открыть</button>
+                <button className="primary" onClick={() => onOpen(l.id)}>
+                  Открыть
+                </button>
                 {isAdmin && (
                   <button className="danger" onClick={() => handleDelete(l.id)}>
                     Удалить

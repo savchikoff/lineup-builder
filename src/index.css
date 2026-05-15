@@ -7,6 +7,15 @@ body,
 }
 
 body {
-  background: #0e1116;
-  color: #e6edf3;
+  background: #212227;
+  color: #ffffff;
+  font-family:
+    'Wix Madefor Display',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
