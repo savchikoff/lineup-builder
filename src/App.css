@@ -141,6 +141,73 @@ h3 {
   color: var(--accent-ink);
 }
 
+.tabs .tab-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.tabs .tab-link:hover {
+  border-color: var(--border-strong);
+  background: var(--panel-2);
+}
+
+.tabs .tab-link.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.btn:hover {
+  background: var(--border-strong);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
 .page {
   background: var(--panel);
   border: 1px solid var(--border);

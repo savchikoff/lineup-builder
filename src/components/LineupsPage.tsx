@@ -3,14 +3,15 @@ import type { Lineup } from '../types'
 import { getFormation, getFormationsForSize, SQUAD_SIZES } from '../formations'
 import { uid } from '../storage'
 import { useAdmin } from '../AdminContext'
+import { navigate } from '../router'
+import { Link } from './Link'
 
 interface Props {
   lineups: Lineup[]
   onChange: (lineups: Lineup[]) => void
-  onOpen: (id: string) => void
 }
 
-export function LineupsPage({ lineups, onChange, onOpen }: Props) {
+export function LineupsPage({ lineups, onChange }: Props) {
   const { isAdmin } = useAdmin()
   const [name, setName] = useState('')
   const [size, setSize] = useState<number>(11)
@@ -33,7 +34,7 @@ export function LineupsPage({ lineups, onChange, onOpen }: Props) {
     }
     onChange([...lineups, lineup])
     setName('')
-    onOpen(lineup.id)
+    navigate(`/lineups/${lineup.id}`)
   }
 
   const handleDelete = (id: string) => {
@@ -87,9 +88,9 @@ export function LineupsPage({ lineups, onChange, onOpen }: Props) {
                     {filled}/{total} на поле · {l.bench.length} в запасе
                   </span>
                 </span>
-                <button className="primary" onClick={() => onOpen(l.id)}>
+                <Link to={`/lineups/${l.id}`} className="btn btn-primary">
                   Открыть
-                </button>
+                </Link>
                 {isAdmin && (
                   <button className="danger" onClick={() => handleDelete(l.id)}>
                     Удалить

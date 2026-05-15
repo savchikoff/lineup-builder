@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import type { Lineup, Player } from '../types'
 import { POSITION_LABEL } from '../types'
 import {
@@ -8,16 +8,30 @@ import {
 } from '../formations'
 import { Pitch } from './Pitch'
 import { useAdmin } from '../AdminContext'
+import { navigate } from '../router'
 
 interface Props {
   lineup: Lineup
   players: Player[]
   onChange: (lineup: Lineup) => void
-  onBack: () => void
 }
 
-export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
+export function LineupEditor({ lineup, players, onChange }: Props) {
   const { isAdmin } = useAdmin()
+  const [shareLabel, setShareLabel] = useState('Поделиться')
+
+  const onBack = () => navigate('/lineups')
+
+  const handleShare = async () => {
+    const url = window.location.href
+    try {
+      await navigator.clipboard.writeText(url)
+      setShareLabel('Скопировано ✓')
+    } catch {
+      setShareLabel('Ошибка')
+    }
+    setTimeout(() => setShareLabel('Поделиться'), 1800)
+  }
   const formation = getFormation(lineup.formationId)
   const playersById = useMemo(
     () => Object.fromEntries(players.map((p) => [p.id, p])),
@@ -111,6 +125,9 @@ export function LineupEditor({ lineup, players, onChange, onBack }: Props) {
           onChange={(e) => renameLineup(e.target.value)}
           readOnly={!isAdmin}
         />
+        <button onClick={handleShare} title="Скопировать ссылку на состав">
+          {shareLabel}
+        </button>
       </div>
 
       <div className="row">
